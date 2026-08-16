@@ -49,8 +49,6 @@ Interesting activity
    Duration:          109s
 ```
 
----
-
 ## Automatic log-file detection (Ubuntu vs. RHEL)
 
 Different distributions write SSH/sudo activity to different files. LogHound
@@ -65,8 +63,6 @@ Detection uses both the `ID` and `ID_LIKE` fields in `/etc/os-release`, so
 derivatives resolve to the correct family automatically. You can always
 override the choice with `--file` (see below).
 
----
-
 ## Requirements
 
 - **Rust** 1.74 or newer (install via [rustup](https://rustup.rs/)).
@@ -74,8 +70,6 @@ override the choice with `--file` (see below).
 - Permission to read the auth log. These files are usually restricted, so you
   will typically run LogHound with `sudo`, or as a user in the `adm` group
   (Debian/Ubuntu) or with the appropriate group on RHEL.
-
----
 
 ## Install
 
@@ -99,8 +93,6 @@ Or install straight from the source tree with Cargo:
 ```bash
 cargo install --path .
 ```
-
----
 
 ## Usage
 
@@ -160,8 +152,6 @@ Options:
   -V, --version                  Print version
 ```
 
----
-
 ## What it detects
 
 Each detector receives the same list of events and independently answers
@@ -181,8 +171,6 @@ Each detector receives the same list of events and independently answers
 
 Findings are sorted most-severe first and rendered with a risk indicator:
 🔴 High, 🟡 Medium, 🟢 Normal.
-
----
 
 ## Configuration
 
@@ -213,16 +201,12 @@ the report itself clean on stdout. Normal runs are quiet (warnings only).
 RUST_LOG=info loghound --file ./examples/sample-auth.log
 ```
 
----
-
 ## A note on timestamps
 
 Traditional syslog lines (`Aug 16 09:17:21 ...`) do not include a year.
 LogHound assumes the current year and automatically rolls a timestamp back a
 year if it would otherwise land in the future — so logs written in December and
 read in January are dated correctly.
-
----
 
 ## Development
 
@@ -271,20 +255,6 @@ and `os_detect.rs`.
 2. Register it in `all_detectors()` in `src/detections/mod.rs`.
 
 That's the only wiring required.
-
----
-
-## Roadmap
-
-LogHound is built to grow in stages:
-
-- **v0.1** — log parser and summary ✅
-- **v0.2** — CLI filters (`--failed`, `--user`, `--ip`, `--since`) ✅
-- **v0.3** — detection engine (brute force, correlation, spray) ✅
-- **Next** — new-source and unusual-time baselining, a `investigate --ip`
-  timeline view, and an interactive TUI.
-
----
 
 ## License
 
