@@ -41,9 +41,12 @@ pub struct AuthEvent {
     pub event_type: EventType,
     pub username: Option<String>,
     pub source_ip: Option<IpAddr>,
+    #[allow(dead_code)]
     pub port: Option<u16>,
     /// The command for `sudo` events; `None` for everything else.
+    #[allow(dead_code)]
     pub command: Option<String>,
     /// The original log line, kept for timeline/detail views.
+    #[allow(dead_code)]
     pub raw: String,
 }

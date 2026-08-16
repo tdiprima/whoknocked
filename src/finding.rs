@@ -12,6 +12,7 @@ use std::net::IpAddr;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Severity {
     /// Routine, expected activity. Shown for context, not concern.
+    #[allow(dead_code)]
     Normal,
     /// Worth a glance. An anomaly, not necessarily an attack.
     Medium,
@@ -30,6 +31,7 @@ impl Severity {
     }
 
     /// A short uppercase label for table rows.
+    #[allow(dead_code)]
     pub fn label(self) -> &'static str {
         match self {
             Severity::High => "HIGH",
@@ -49,6 +51,8 @@ pub struct Finding {
     pub detail: String,
     /// When the interesting activity happened (used for sorting/timeline).
     pub timestamp: Option<NaiveDateTime>,
+    #[allow(dead_code)]
     pub source_ip: Option<IpAddr>,
+    #[allow(dead_code)]
     pub username: Option<String>,
 }

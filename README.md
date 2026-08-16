@@ -76,8 +76,8 @@ override the choice with `--file` (see below).
 Clone and build a release binary:
 
 ```bash
-git clone https://github.com/tdiprima/loghound.git
-cd loghound
+git clone https://github.com/tdiprima/LogHound.git
+cd LogHound
 cargo build --release
 ```
 

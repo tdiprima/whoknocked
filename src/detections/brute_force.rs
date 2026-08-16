@@ -194,8 +194,23 @@ mod tests {
     #[test]
     fn does_not_flag_failures_spread_beyond_window() {
         // 6 failures, but 10 minutes apart: never 5 within a 5-minute window.
+        let base = NaiveDate::from_ymd_opt(2026, 8, 16)
+            .unwrap()
+            .and_hms_opt(9, 0, 0)
+            .unwrap();
         let events: Vec<AuthEvent> = (0..6)
-            .map(|i| failure_at(i * 600, "root", "10.4.2.81"))
+            .map(|i| {
+                let ts = base + Duration::seconds(i * 600);
+                AuthEvent {
+                    timestamp: ts,
+                    event_type: EventType::LoginFailure,
+                    username: Some("root".to_string()),
+                    source_ip: "10.4.2.81".parse().ok(),
+                    port: None,
+                    command: None,
+                    raw: String::new(),
+                }
+            })
             .collect();
         assert!(BruteForce::new(config()).analyze(&events).is_empty());
     }

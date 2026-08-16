@@ -47,6 +47,7 @@ pub fn build_report(
 /// Append the aggregate counts block.
 fn push_summary(out: &mut String, summary: &Summary) {
     let rows = [
+        (summary.total_events, "total events"),
         (summary.successful_logins, "successful logins"),
         (summary.failed_logins, "failed logins"),
         (summary.invalid_users, "invalid users"),
