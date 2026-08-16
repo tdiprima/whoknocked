@@ -100,6 +100,8 @@ cargo install --path .
 
 ```bash
 sudo loghound
+# OR
+RUST_LOG=info /home/<you>/.cargo/bin/loghound
 ```
 
 LogHound detects your distribution, reads the correct auth log, and prints the
