@@ -1,0 +1,9 @@
+# Rust build artifacts
+/target
+
+# Backtrace / profiling output
+*.profraw
+
+# Editor and OS noise
+*.swp
+.DS_Store
