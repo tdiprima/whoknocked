@@ -9,6 +9,7 @@ readme = "README.md"
 repository = "https://github.com/tdiprima/whoknocked"
 keywords = ["security", "siem", "ssh", "logs", "bruteforce"]
 categories = ["command-line-utilities"]
+exclude = ["docs/", ".github/", "install.sh"]
 
 [[bin]]
 name = "whoknocked"
