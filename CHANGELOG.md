@@ -2,6 +2,10 @@
 
 ## v0.5.0
 
+- Four new detectors: **privileged commands after a suspicious login** (sudo
+  correlated back to a brute-forced SSH session), **direct root login**,
+  **login from a new source** for a known user, and **off-hours login**
+  (`WHOKNOCKED_OFF_HOURS_START` / `_END`).
 - **systemd journal support.** `--journal` reads sshd/sshd-session/sudo
   entries via `journalctl`; auto-detection falls back to it when the
   distribution's log file is missing. `--file -` reads stdin.

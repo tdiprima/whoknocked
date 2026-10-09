@@ -93,7 +93,7 @@ impl LoginAfterFailures {
 }
 
 /// Build a map of source IP to its sorted list of failure timestamps.
-fn failure_timeline_by_ip(events: &[AuthEvent]) -> BTreeMap<IpAddr, Vec<NaiveDateTime>> {
+pub(super) fn failure_timeline_by_ip(events: &[AuthEvent]) -> BTreeMap<IpAddr, Vec<NaiveDateTime>> {
     let failures_by_ip = group_by_ip(events, |event| event.event_type.is_failure());
 
     let mut timelines: BTreeMap<IpAddr, Vec<NaiveDateTime>> = BTreeMap::new();
@@ -109,7 +109,7 @@ fn failure_timeline_by_ip(events: &[AuthEvent]) -> BTreeMap<IpAddr, Vec<NaiveDat
 ///
 /// `sorted_times` must be ascending; uses binary search, so it stays fast
 /// even with tens of thousands of failures.
-fn failures_in_range(
+pub(super) fn failures_in_range(
     sorted_times: &[NaiveDateTime],
     start: NaiveDateTime,
     end: NaiveDateTime,
@@ -138,6 +138,8 @@ mod tests {
             spray_min_users: 8,
             spray_max_per_user: 3,
             failures_before_success: 5,
+            off_hours_start: 23,
+            off_hours_end: 6,
         }
     }
 

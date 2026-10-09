@@ -14,6 +14,8 @@ const DEFAULT_WINDOW_MINUTES: u64 = 5;
 const DEFAULT_SPRAY_MIN_USERS: u32 = 8;
 const DEFAULT_SPRAY_MAX_PER_USER: u32 = 3;
 const DEFAULT_FAILURES_BEFORE_SUCCESS: u32 = 5;
+const DEFAULT_OFF_HOURS_START: u32 = 23;
+const DEFAULT_OFF_HOURS_END: u32 = 6;
 
 /// Tunable thresholds shared by the detection engine.
 #[derive(Debug, Clone, Copy)]
@@ -28,6 +30,10 @@ pub struct DetectorConfig {
     pub spray_max_per_user: u32,
     /// Failures preceding a success (same IP, within window) to flag it.
     pub failures_before_success: u32,
+    /// Hour (0-23) at which "off hours" begin for the off-hours detector.
+    pub off_hours_start: u32,
+    /// Hour (0-23) at which "off hours" end (exclusive).
+    pub off_hours_end: u32,
 }
 
 impl DetectorConfig {
@@ -51,12 +57,18 @@ impl DetectorConfig {
             DEFAULT_SPRAY_MIN_USERS,
         )?;
 
+        let off_hours_start =
+            read_env_parsed("WHOKNOCKED_OFF_HOURS_START", DEFAULT_OFF_HOURS_START)?;
+        let off_hours_end = read_env_parsed("WHOKNOCKED_OFF_HOURS_END", DEFAULT_OFF_HOURS_END)?;
+
         let config = DetectorConfig {
             brute_min_failures,
             window: Duration::from_secs(window_minutes.saturating_mul(60)),
             spray_min_users,
             spray_max_per_user: DEFAULT_SPRAY_MAX_PER_USER,
             failures_before_success: DEFAULT_FAILURES_BEFORE_SUCCESS,
+            off_hours_start,
+            off_hours_end,
         };
 
         config.validate()?;
@@ -73,6 +85,9 @@ impl DetectorConfig {
         }
         if self.window.is_zero() {
             anyhow::bail!("detection window must be greater than zero minutes");
+        }
+        if self.off_hours_start > 23 || self.off_hours_end > 23 {
+            anyhow::bail!("off-hours start/end must be hours between 0 and 23");
         }
         Ok(())
     }

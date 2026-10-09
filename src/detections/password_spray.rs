@@ -113,6 +113,8 @@ mod tests {
             spray_min_users: 8,
             spray_max_per_user: 3,
             failures_before_success: 5,
+            off_hours_start: 23,
+            off_hours_end: 6,
         }
     }
 
