@@ -1,6 +1,6 @@
 //! Aggregate counts over a set of authentication events.
 //!
-//! This is the LogHound v0.1 view: the "instead of thousands of lines, here
+//! This is the whoknocked v0.1 view: the "instead of thousands of lines, here
 //! are the numbers that matter" summary. Pure computation, no I/O.
 
 use crate::event::{AuthEvent, EventType};

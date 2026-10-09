@@ -7,3 +7,6 @@
 # Editor and OS noise
 *.swp
 .DS_Store
+
+# The sample log is a test fixture; override the global *.log ignore
+!examples/*.log

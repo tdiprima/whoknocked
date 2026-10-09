@@ -185,9 +185,7 @@ mod tests {
 
     #[test]
     fn does_not_flag_below_threshold() {
-        let events: Vec<AuthEvent> = (0..4)
-            .map(|i| failure_at(i, "root", "10.4.2.81"))
-            .collect();
+        let events: Vec<AuthEvent> = (0..4).map(|i| failure_at(i, "root", "10.4.2.81")).collect();
         assert!(BruteForce::new(config()).analyze(&events).is_empty());
     }
 

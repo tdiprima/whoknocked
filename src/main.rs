@@ -1,4 +1,4 @@
-//! LogHound entry point.
+//! whoknocked entry point.
 //!
 //! Orchestration only: resolve the log file, load and filter events, run the
 //! detection engine, and print the report. All real work lives in the modules
@@ -23,7 +23,7 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 /// Environment variable that overrides the auto-detected log file path.
-const LOG_FILE_ENV: &str = "LOGHOUND_FILE";
+const LOG_FILE_ENV: &str = "WHOKNOCKED_FILE";
 
 fn main() -> ExitCode {
     init_logging();
@@ -32,7 +32,7 @@ fn main() -> ExitCode {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => {
             // One clear line to stderr, with the full context chain.
-            eprintln!("loghound: {error:#}");
+            eprintln!("whoknocked: {error:#}");
             ExitCode::FAILURE
         }
     }
@@ -78,13 +78,19 @@ fn run() -> Result<()> {
         produced
     };
 
-    report::print_report(&source_label, &event_summary, &findings, args.summary_only);
+    report::print_report(
+        &source_label,
+        &event_summary,
+        &findings,
+        args.summary_only,
+        report::use_color(args.color),
+    );
     Ok(())
 }
 
 /// Decide which log file to read.
 ///
-/// Precedence: explicit `--file`, then the `LOGHOUND_FILE` environment
+/// Precedence: explicit `--file`, then the `WHOKNOCKED_FILE` environment
 /// variable, then auto-detection based on the Linux distribution.
 fn resolve_log_path(args: &Args) -> Result<PathBuf> {
     if let Some(path) = &args.file {

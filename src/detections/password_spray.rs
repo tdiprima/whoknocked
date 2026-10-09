@@ -135,8 +135,16 @@ mod tests {
     fn flags_many_accounts_with_few_attempts() {
         let ip = "45.20.10.2";
         let users = [
-            "admin", "administrator", "ubuntu", "oracle", "postgres", "mysql", "backup", "test",
-            "dev", "jenkins",
+            "admin",
+            "administrator",
+            "ubuntu",
+            "oracle",
+            "postgres",
+            "mysql",
+            "backup",
+            "test",
+            "dev",
+            "jenkins",
         ];
         let events: Vec<AuthEvent> = users
             .iter()
@@ -152,9 +160,7 @@ mod tests {
     #[test]
     fn does_not_flag_single_account_hammering() {
         // 20 failures, but all against one account: that is brute force.
-        let events: Vec<AuthEvent> = (0..20)
-            .map(|i| failure(i, "root", "45.20.10.2"))
-            .collect();
+        let events: Vec<AuthEvent> = (0..20).map(|i| failure(i, "root", "45.20.10.2")).collect();
         assert!(PasswordSpray::new(config()).analyze(&events).is_empty());
     }
 

@@ -35,19 +35,19 @@ impl DetectorConfig {
     pub fn resolve(args: &Args) -> Result<Self> {
         let brute_min_failures = pick_u32(
             args.brute_threshold,
-            "LOGHOUND_BRUTE_MIN_FAILURES",
+            "WHOKNOCKED_BRUTE_MIN_FAILURES",
             DEFAULT_BRUTE_MIN_FAILURES,
         )?;
 
         let window_minutes = pick_u64(
             args.window_minutes,
-            "LOGHOUND_WINDOW_MINUTES",
+            "WHOKNOCKED_WINDOW_MINUTES",
             DEFAULT_WINDOW_MINUTES,
         )?;
 
         let spray_min_users = pick_u32(
             args.spray_threshold,
-            "LOGHOUND_SPRAY_MIN_USERS",
+            "WHOKNOCKED_SPRAY_MIN_USERS",
             DEFAULT_SPRAY_MIN_USERS,
         )?;
 

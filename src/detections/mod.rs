@@ -38,7 +38,11 @@ pub fn run_all(detectors: &[Box<dyn Detection>], events: &[AuthEvent]) -> Vec<Fi
     let mut findings = Vec::new();
     for detector in detectors {
         let produced = detector.analyze(events);
-        log::debug!("detector {} produced {} finding(s)", detector.name(), produced.len());
+        log::debug!(
+            "detector {} produced {} finding(s)",
+            detector.name(),
+            produced.len()
+        );
         findings.extend(produced);
     }
     findings
@@ -49,10 +53,7 @@ pub fn run_all(detectors: &[Box<dyn Detection>], events: &[AuthEvent]) -> Vec<Fi
 /// stable across runs.
 ///
 /// Shared by multiple detectors to avoid repeating the grouping logic.
-pub(crate) fn group_by_ip<'a, F>(
-    events: &'a [AuthEvent],
-    keep: F,
-) -> BTreeMap<IpAddr, Vec<&'a AuthEvent>>
+pub(crate) fn group_by_ip<F>(events: &[AuthEvent], keep: F) -> BTreeMap<IpAddr, Vec<&AuthEvent>>
 where
     F: Fn(&AuthEvent) -> bool,
 {

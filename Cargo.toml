@@ -1,17 +1,17 @@
 [package]
-name = "loghound"
-version = "0.3.0"
+name = "whoknocked"
+version = "0.4.0"
 edition = "2021"
 rust-version = "1.74"
-description = "A tiny local SIEM-style analyzer for Linux SSH/sudo authentication logs"
+description = "Who knocked on your SSH door? A tiny local analyzer for Linux auth logs that surfaces brute force, sprays, and suspicious logins."
 license = "MIT"
 readme = "README.md"
-repository = "https://github.com/tdiprima/loghound"
+repository = "https://github.com/tdiprima/whoknocked"
 keywords = ["security", "siem", "ssh", "logs", "bruteforce"]
 categories = ["command-line-utilities"]
 
 [[bin]]
-name = "loghound"
+name = "whoknocked"
 path = "src/main.rs"
 
 [dependencies]

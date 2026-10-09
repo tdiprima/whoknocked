@@ -184,7 +184,8 @@ fn named(caps: &regex::Captures, name: &str) -> Option<String> {
 }
 
 fn named_ip(caps: &regex::Captures, name: &str) -> Option<IpAddr> {
-    caps.name(name).and_then(|m| m.as_str().parse::<IpAddr>().ok())
+    caps.name(name)
+        .and_then(|m| m.as_str().parse::<IpAddr>().ok())
 }
 
 fn named_port(caps: &regex::Captures, name: &str) -> Option<u16> {
@@ -350,7 +351,9 @@ mod tests {
             "Aug 16 09:00:00 server CRON[999]: pam_unix(cron:session): session opened for user root"
         )
         .is_none());
-        assert!(parse("Aug 16 09:00:00 server systemd[1]: Started Session 5 of user alex.").is_none());
+        assert!(
+            parse("Aug 16 09:00:00 server systemd[1]: Started Session 5 of user alex.").is_none()
+        );
     }
 
     #[test]

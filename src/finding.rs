@@ -1,6 +1,6 @@
 //! A `Finding` is the output of a detector: something a human should look at.
 //!
-//! Findings are deliberately *not* called "alerts". Following the LogHound
+//! Findings are deliberately *not* called "alerts". Following the whoknocked
 //! philosophy, the goal is to surface *interesting* activity and let the
 //! analyst decide, rather than screaming "HACKER!!!" at every anomaly.
 
@@ -21,7 +21,7 @@ pub enum Severity {
 }
 
 impl Severity {
-    /// A colored circle emoji, matching the LogHound report style.
+    /// A colored circle emoji, matching the whoknocked report style.
     pub fn emoji(self) -> &'static str {
         match self {
             Severity::High => "\u{1F534}",   // red circle

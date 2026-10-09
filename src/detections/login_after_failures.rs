@@ -2,7 +2,7 @@
 //!
 //! Individual events are dull; their *relationship* is what matters. A login
 //! that succeeds moments after many failures from the same source is far more
-//! interesting than an ordinary login, so LogHound correlates the two.
+//! interesting than an ordinary login, so whoknocked correlates the two.
 
 use super::{group_by_ip, Detection};
 use crate::config::DetectorConfig;
@@ -173,7 +173,9 @@ mod tests {
     #[test]
     fn does_not_flag_clean_success() {
         let events = vec![event(30, EventType::LoginSuccess, "alex", "203.0.113.17")];
-        assert!(LoginAfterFailures::new(config()).analyze(&events).is_empty());
+        assert!(LoginAfterFailures::new(config())
+            .analyze(&events)
+            .is_empty());
     }
 
     #[test]
@@ -182,7 +184,9 @@ mod tests {
             .map(|i| event(i, EventType::LoginFailure, "alex", "203.0.113.17"))
             .collect();
         events.push(event(30, EventType::LoginSuccess, "alex", "10.0.0.9"));
-        assert!(LoginAfterFailures::new(config()).analyze(&events).is_empty());
+        assert!(LoginAfterFailures::new(config())
+            .analyze(&events)
+            .is_empty());
     }
 
     #[test]
@@ -195,10 +199,12 @@ mod tests {
         events.push(event(0, EventType::LoginSuccess, "alex", ip));
         // Move the success far ahead by rebuilding its timestamp.
         let mut late_success = event(0, EventType::LoginSuccess, "alex", ip);
-        late_success.timestamp = late_success.timestamp + Duration::minutes(10);
+        late_success.timestamp += Duration::minutes(10);
         events.pop();
         events.push(late_success);
 
-        assert!(LoginAfterFailures::new(config()).analyze(&events).is_empty());
+        assert!(LoginAfterFailures::new(config())
+            .analyze(&events)
+            .is_empty());
     }
 }
