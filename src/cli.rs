@@ -18,9 +18,31 @@ use std::path::PathBuf;
 #[derive(Parser, Debug)]
 #[command(name = "whoknocked", version, about, long_about = None)]
 pub struct Args {
-    /// Log file to analyze. Overrides distribution auto-detection.
+    /// Log file to analyze, or `-` for stdin. Overrides auto-detection.
     #[arg(short, long, value_name = "PATH")]
     pub file: Option<PathBuf>,
+
+    /// Read sshd/sudo entries from the systemd journal via `journalctl`.
+    #[arg(long, conflicts_with = "file")]
+    pub journal: bool,
+
+    /// Keep watching and print new findings as they happen (like `tail -f`).
+    #[arg(long)]
+    pub follow: bool,
+
+    /// Look up country, network owner, and hostname for attacker IPs
+    /// (queries ipinfo.io; needs network access).
+    #[arg(long)]
+    pub enrich: bool,
+
+    /// Emit the report as JSON instead of text (one JSON object per finding
+    /// in --follow mode).
+    #[arg(long)]
+    pub json: bool,
+
+    /// How many source IPs to list in the "Top sources" table.
+    #[arg(long, value_name = "N", default_value_t = 5)]
+    pub top: usize,
 
     /// Show only failed / invalid-user events.
     #[arg(long)]

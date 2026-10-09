@@ -4,26 +4,28 @@
 //! detection engine, and print the report. All real work lives in the modules
 //! below so each piece stays small and testable.
 
+mod attackers;
 mod cli;
 mod config;
 mod detections;
+mod enrich;
 mod event;
 mod finding;
+mod follow;
 mod loader;
 mod os_detect;
 mod parser;
 mod report;
+mod source;
 mod summary;
 
 use anyhow::{Context, Result};
 use chrono::Local;
 use cli::Args;
 use config::DetectorConfig;
-use std::path::PathBuf;
+use source::LogSource;
+use std::collections::HashMap;
 use std::process::ExitCode;
-
-/// Environment variable that overrides the auto-detected log file path.
-const LOG_FILE_ENV: &str = "WHOKNOCKED_FILE";
 
 fn main() -> ExitCode {
     init_logging();
@@ -48,21 +50,23 @@ fn init_logging() {
 fn run() -> Result<()> {
     let args = Args::parse_args();
     let detector_config = DetectorConfig::resolve(&args)?;
+    let color = report::use_color(args.color);
 
-    let log_path = resolve_log_path(&args)?;
+    let log_source = LogSource::resolve(&args)?;
+    let source_label = log_source.label();
     let now = Local::now().naive_local();
 
-    let outcome = loader::load_events(&log_path, now)
-        .with_context(|| format!("failed to analyze {}", log_path.display()))?;
+    let reader = log_source.open()?;
+    let outcome = loader::load_events(reader, &source_label, now)
+        .with_context(|| format!("failed to analyze {source_label}"))?;
 
     if outcome.parse_errors > 0 {
         log::warn!("{} line(s) could not be parsed", outcome.parse_errors);
     }
 
     let events = loader::filter_events(outcome.events, &args, now)?;
-    let source_label = log_path.display().to_string();
 
-    if events.is_empty() {
+    if events.is_empty() && !args.follow {
         println!("No matching authentication events found in {source_label}.");
         return Ok(());
     }
@@ -78,32 +82,40 @@ fn run() -> Result<()> {
         produced
     };
 
-    report::print_report(
-        &source_label,
-        &event_summary,
-        &findings,
-        args.summary_only,
-        report::use_color(args.color),
-    );
+    let mut sources = attackers::top_sources(&events, args.top);
+
+    // Enrichment: one lookup per distinct IP across the table and findings.
+    let info: HashMap<_, _> = if args.enrich {
+        let ips = sources
+            .iter()
+            .map(|s| s.ip)
+            .chain(findings.iter().filter_map(|f| f.source_ip));
+        enrich::lookup_many(ips)
+    } else {
+        HashMap::new()
+    };
+    for source in &mut sources {
+        source.info = info.get(&source.ip).cloned();
+    }
+
+    let data = report::ReportData {
+        source_label: &source_label,
+        summary: &event_summary,
+        findings: &findings,
+        sources: &sources,
+        info: &info,
+        summary_only: args.summary_only,
+    };
+
+    if args.json {
+        println!("{}", report::build_json(&data));
+    } else {
+        report::print_report(&data, color);
+    }
+
+    if args.follow {
+        let mut follower = follow::Follower::new(&args, detector_config, events, &findings, color);
+        follower.run(&log_source)?;
+    }
     Ok(())
-}
-
-/// Decide which log file to read.
-///
-/// Precedence: explicit `--file`, then the `WHOKNOCKED_FILE` environment
-/// variable, then auto-detection based on the Linux distribution.
-fn resolve_log_path(args: &Args) -> Result<PathBuf> {
-    if let Some(path) = &args.file {
-        return Ok(path.clone());
-    }
-
-    if let Ok(from_env) = std::env::var(LOG_FILE_ENV) {
-        let trimmed = from_env.trim();
-        if !trimmed.is_empty() {
-            return Ok(PathBuf::from(trimmed));
-        }
-    }
-
-    os_detect::default_log_path()
-        .context("could not determine the log file automatically; pass --file")
 }

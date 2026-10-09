@@ -27,8 +27,14 @@ set of detection rules, and shows you only the **interesting** activity:
 - 🔴 **Login after repeated failures**: a wall of failures, then a success. The one you really want to know about.
 - 🟡 **Username / password spray**: one IP, many accounts, a couple of tries each
 
-Single static binary. No daemon, no database, no agent, no cloud. Runs in
-milliseconds on a log with hundreds of thousands of lines.
+Plus a **Top sources** table so you can see at a glance who is doing the
+knocking, optional **enrichment** (country, network owner, hostname) for
+those IPs, a **`--follow`** mode that prints findings live as they happen,
+and **`--json`** for piping into jq or your SIEM.
+
+Reads `/var/log/auth.log`, `/var/log/secure`, the **systemd journal**, or
+stdin. Single static binary. No daemon, no database, no agent, no cloud. Runs
+in milliseconds on a log with hundreds of thousands of lines.
 
 ## Try it in 10 seconds
 
@@ -64,6 +70,14 @@ Risk: ELEVATED ⚠️
         4   unique source IPs
        16   unique usernames
 
+Top sources
+────────────────────────────────────────────────────
+  IP                 Fails   OK Users  First     Last    
+  45.20.13.8            12    1     7  09:14:02  09:18:47
+  45.20.10.2             9    0     9  10:02:01  10:03:50
+  10.0.0.7               1    1     1  08:55:19  08:55:27
+  10.0.0.5               0    2     1  07:58:11  11:15:03
+
 Interesting activity
 ────────────────────────────────────────────────────
 
@@ -79,7 +93,7 @@ Interesting activity
    Source:    45.20.13.8
    12 failed attempts, then success after 47s
    Time:      09:18:47
-
+   
    Recommendation:
    Investigate whether this source and login were expected.
 
@@ -113,8 +127,10 @@ reads `/etc/os-release` and picks the right one for you:
 | RHEL, Rocky, AlmaLinux, CentOS, Fedora, Oracle Linux | `/var/log/secure`   |
 
 Detection uses both the `ID` and `ID_LIKE` fields in `/etc/os-release`, so
-derivatives resolve to the correct family automatically. You can always
-override the choice with `--file` (see below).
+derivatives resolve to the correct family automatically. If the expected file
+does not exist (Fedora, Arch, and minimal RHEL installs log only to journald),
+`whoknocked` falls back to reading the **systemd journal** through
+`journalctl`. You can always override the choice with `--file` or `--journal`.
 
 ## Requirements
 
@@ -171,6 +187,51 @@ whoknocked --file /var/log/auth.log
 whoknocked --file ./examples/sample-auth.log      # try it without sudo
 ```
 
+### Read the systemd journal or stdin
+
+```bash
+sudo whoknocked --journal                       # sshd / sshd-session / sudo entries
+journalctl -u ssh | whoknocked --file -         # or pipe anything syslog-shaped
+zcat /var/log/auth.log.2.gz | whoknocked --file -
+```
+
+### Watch live
+
+```bash
+sudo whoknocked --follow
+```
+
+Prints the normal report, then keeps reading. Each new finding is printed the
+moment it fires, with a wall-clock stamp. Survives logrotate. Combine with
+`--json` to get one JSON object per line, ready for a webhook or `jq`.
+
+### Who is knocking?
+
+```bash
+sudo whoknocked --enrich
+```
+
+Adds country, city, network owner (ASN), and hostname to the Top sources
+table and to every finding, using [ipinfo.io](https://ipinfo.io). Private
+addresses are labeled locally and never sent anywhere. Needs network access.
+
+```text
+Top sources
+────────────────────────────────────────────────────
+  IP                 Fails   OK Users  First     Last
+  45.20.13.8            12    1     7  09:14:02  09:18:47
+     🇺🇸 US, Springdale · AS7018 AT&T Enterprises, LLC
+  45.20.10.2             9    0     9  10:02:01  10:03:50
+     🇺🇸 US, Rogers · AS7018 AT&T Enterprises, LLC
+```
+
+### JSON
+
+```bash
+whoknocked --json | jq '.findings[] | select(.severity == "high") | .title'
+whoknocked --follow --json | while read -r finding; do curl -s -X POST -d "$finding" "$WEBHOOK"; done
+```
+
 ### Filters
 
 Filters narrow the events *before* the summary and detectors run.
@@ -192,21 +253,28 @@ whoknocked --failed --user root --since 1d
 ### All options
 
 ```text
+Who knocked on your SSH door? A tiny local analyzer for Linux auth logs that surfaces brute force, sprays, and suspicious logins.
+
 Usage: whoknocked [OPTIONS]
 
 Options:
-  -f, --file <PATH>              Log file to analyze (overrides auto-detection)
-      --failed                   Show only failed / invalid-user events
-      --user <NAME>              Show only events for this username
-      --ip <IP>                  Show only events from this source IP
-      --since <DURATION>         Only events newer than this, e.g. 90m, 2h, 3d
-      --summary-only             Print the summary only; skip detection
-      --brute-threshold <N>      Brute-force threshold (default 10)
-      --window-minutes <MINUTES> Detection window in minutes (default 5)
-      --spray-threshold <N>      Spray threshold: distinct users (default 8)
-      --color <WHEN>             ANSI color: auto, always, never (default auto)
-  -h, --help                     Print help
-  -V, --version                  Print version
+  -f, --file <PATH>               Log file to analyze, or `-` for stdin. Overrides auto-detection
+      --journal                   Read sshd/sudo entries from the systemd journal via `journalctl`
+      --follow                    Keep watching and print new findings as they happen (like `tail -f`)
+      --enrich                    Look up country, network owner, and hostname for attacker IPs (queries ipinfo.io; needs network access)
+      --json                      Emit the report as JSON instead of text (one JSON object per finding in --follow mode)
+      --top <N>                   How many source IPs to list in the "Top sources" table [default: 5]
+      --failed                    Show only failed / invalid-user events
+      --user <NAME>               Show only events for this username
+      --ip <IP>                   Show only events from this source IP address
+      --since <DURATION>          Only consider events newer than this, e.g. 90m, 2h, 3d
+      --summary-only              Print the summary only; skip the detection engine
+      --brute-threshold <N>       Brute-force threshold: failures from one IP within the window
+      --window-minutes <MINUTES>  Detection window length, in minutes
+      --spray-threshold <N>       Password-spray threshold: distinct usernames tried from one IP
+      --color <WHEN>              When to use ANSI color in the report [default: auto] [possible values: auto, always, never]
+  -h, --help                      Print help
+  -V, --version                   Print version
 ```
 
 Color follows `--color` and the [`NO_COLOR`](https://no-color.org) convention;
@@ -298,12 +366,16 @@ src/
 ├── cli.rs           Argument definitions and --since validation
 ├── config.rs        Detector thresholds (defaults → env → flags)
 ├── os_detect.rs     Distribution detection → auth log path
-├── loader.rs        File I/O, year correction, and view filters
+├── source.rs        Log file, stdin, or journalctl: resolution and opening
+├── loader.rs        Line parsing loop, year correction, and view filters
+├── follow.rs        --follow: tail a source and print new findings live
+├── enrich.rs        --enrich: ipinfo.io lookups for source IPs
+├── attackers.rs     "Top sources" rollup
 ├── parser.rs        Raw syslog line → structured AuthEvent
 ├── event.rs         AuthEvent and EventType definitions
 ├── summary.rs       Aggregate counts
 ├── finding.rs       Finding and Severity types
-├── report.rs        Human-readable report rendering
+├── report.rs        Text and JSON report rendering
 └── detections/
     ├── mod.rs                    Detection trait + registry
     ├── brute_force.rs            Detection #1
@@ -312,8 +384,8 @@ src/
 ```
 
 The parsing and detection logic is pure (no I/O), so it is fully unit-testable
-without elevated privileges. All filesystem access is isolated in `loader.rs`
-and `os_detect.rs`.
+without elevated privileges. All filesystem, process, and network access is
+isolated in `source.rs`, `os_detect.rs`, `follow.rs`, and `enrich.rs`.
 
 ### Adding a new detector
 

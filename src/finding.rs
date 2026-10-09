@@ -5,11 +5,13 @@
 //! analyst decide, rather than screaming "HACKER!!!" at every anomaly.
 
 use chrono::NaiveDateTime;
+use serde::Serialize;
 use std::net::IpAddr;
 
 /// How much attention a finding deserves. Ordering matters: `High` is the
 /// most severe, so findings sort High-first for display.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[serde(rename_all = "lowercase")]
 pub enum Severity {
     /// Routine, expected activity. Shown for context, not concern.
     #[allow(dead_code)]
@@ -42,7 +44,7 @@ impl Severity {
 }
 
 /// A single interesting observation produced by a detector.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Finding {
     pub severity: Severity,
     /// Short headline, e.g. "Possible brute force".
@@ -51,8 +53,6 @@ pub struct Finding {
     pub detail: String,
     /// When the interesting activity happened (used for sorting/timeline).
     pub timestamp: Option<NaiveDateTime>,
-    #[allow(dead_code)]
     pub source_ip: Option<IpAddr>,
-    #[allow(dead_code)]
     pub username: Option<String>,
 }

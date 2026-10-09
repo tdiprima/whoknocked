@@ -3,10 +3,25 @@
 //! `build_report` is a pure function returning a `String`, so its output can
 //! be snapshot-tested. `print_report` is the thin I/O wrapper `main` calls.
 
+use crate::attackers::SourceActivity;
 use crate::cli::ColorMode;
+use crate::enrich::IpInfo;
 use crate::finding::{Finding, Severity};
 use crate::summary::Summary;
+use serde::Serialize;
+use std::collections::HashMap;
 use std::io::IsTerminal;
+use std::net::IpAddr;
+
+/// Everything the renderers need, gathered in one place.
+pub struct ReportData<'a> {
+    pub source_label: &'a str,
+    pub summary: &'a Summary,
+    pub findings: &'a [Finding],
+    pub sources: &'a [SourceActivity],
+    pub info: &'a HashMap<IpAddr, IpInfo>,
+    pub summary_only: bool,
+}
 
 // --- ANSI styling ------------------------------------------------------------
 //
@@ -74,13 +89,15 @@ fn risk_style(findings: &[Finding]) -> &'static str {
 ///
 /// `source_label` is what was analyzed (e.g. the log path). When
 /// `summary_only` is set, the findings section is omitted.
-pub fn build_report(
-    source_label: &str,
-    summary: &Summary,
-    findings: &[Finding],
-    summary_only: bool,
-    color: bool,
-) -> String {
+pub fn build_report(data: &ReportData, color: bool) -> String {
+    let ReportData {
+        source_label,
+        summary,
+        findings,
+        sources,
+        info,
+        summary_only,
+    } = *data;
     let mut out = String::new();
 
     out.push_str(&format!("\u{1F6AA} {}\n", paint(color, BOLD, "WHOKNOCKED"))); // door emoji
@@ -96,13 +113,61 @@ pub fn build_report(
 
     push_summary(&mut out, summary, color);
 
+    if !sources.is_empty() {
+        out.push('\n');
+        push_sources(&mut out, sources, color);
+    }
+
     if summary_only {
         return out;
     }
 
     out.push('\n');
-    push_findings(&mut out, findings, color);
+    push_findings(&mut out, findings, info, color);
     out
+}
+
+/// Append the "Top sources" table.
+fn push_sources(out: &mut String, sources: &[SourceActivity], color: bool) {
+    out.push_str(&paint(color, BOLD, "Top sources"));
+    out.push('\n');
+    out.push_str(&paint(color, DIM, &"\u{2500}".repeat(52)));
+    out.push('\n');
+    out.push_str(&paint(
+        color,
+        DIM,
+        &format!(
+            "  {:<18} {:>5} {:>4} {:>5}  {:<8}  {:<8}",
+            "IP", "Fails", "OK", "Users", "First", "Last"
+        ),
+    ));
+    out.push('\n');
+
+    for source in sources {
+        let fails = if source.failures > 0 {
+            paint(color, RED, &format!("{:>5}", source.failures))
+        } else {
+            format!("{:>5}", source.failures)
+        };
+        let ok = if source.successes > 0 {
+            paint(color, GREEN, &format!("{:>4}", source.successes))
+        } else {
+            format!("{:>4}", source.successes)
+        };
+        out.push_str(&format!(
+            "  {:<18} {fails} {ok} {:>5}  {}  {}\n",
+            source.ip,
+            source.usernames,
+            source.first_seen.format("%H:%M:%S"),
+            source.last_seen.format("%H:%M:%S"),
+        ));
+        if let Some(info) = &source.info {
+            let line = info.one_line();
+            if !line.is_empty() {
+                out.push_str(&format!("     {}\n", paint(color, DIM, &line)));
+            }
+        }
+    }
 }
 
 /// Append the aggregate counts block.
@@ -124,7 +189,12 @@ fn push_summary(out: &mut String, summary: &Summary, color: bool) {
 }
 
 /// Append the findings section, most-severe first.
-fn push_findings(out: &mut String, findings: &[Finding], color: bool) {
+fn push_findings(
+    out: &mut String,
+    findings: &[Finding],
+    info: &HashMap<IpAddr, IpInfo>,
+    color: bool,
+) {
     out.push_str(&paint(color, BOLD, "Interesting activity"));
     out.push('\n');
     out.push_str(&paint(color, DIM, &"\u{2500}".repeat(52)));
@@ -140,21 +210,107 @@ fn push_findings(out: &mut String, findings: &[Finding], color: bool) {
 
     for finding in findings {
         out.push('\n');
-        let time = finding
-            .timestamp
-            .map(|t| t.format("%H:%M:%S ").to_string())
-            .unwrap_or_default();
-        let title = paint(color, BOLD, &finding.title);
-        let title = paint(color, severity_style(finding.severity), &title);
-        out.push_str(&format!(
-            "{} {}{}\n",
-            finding.severity.emoji(),
-            paint(color, DIM, &time),
-            title
-        ));
-        for line in finding.detail.lines() {
-            out.push_str(&format!("   {}\n", style_detail_line(color, line)));
+        let extra = finding.source_ip.and_then(|ip| info.get(&ip));
+        out.push_str(&render_finding(finding, extra, color));
+    }
+}
+
+/// Render one finding: headline, indented detail, optional enrichment line.
+pub fn render_finding(finding: &Finding, info: Option<&IpInfo>, color: bool) -> String {
+    let mut out = String::new();
+    let time = finding
+        .timestamp
+        .map(|t| t.format("%H:%M:%S ").to_string())
+        .unwrap_or_default();
+    let title = paint(color, BOLD, &finding.title);
+    let title = paint(color, severity_style(finding.severity), &title);
+    out.push_str(&format!(
+        "{} {}{}\n",
+        finding.severity.emoji(),
+        paint(color, DIM, &time),
+        title
+    ));
+    for line in finding.detail.lines() {
+        out.push_str(&format!("   {}\n", style_detail_line(color, line)));
+    }
+    if let Some(info) = info {
+        let line = info.one_line();
+        if !line.is_empty() {
+            out.push_str(&format!("   {}  {line}\n", paint(color, CYAN, "Who:")));
         }
+    }
+    out
+}
+
+// --- JSON ------------------------------------------------------------------
+
+/// Shape of the whole-report JSON document.
+#[derive(Serialize)]
+struct JsonReport<'a> {
+    source: &'a str,
+    risk: &'a str,
+    summary: &'a Summary,
+    top_sources: &'a [SourceActivity],
+    findings: Vec<JsonFinding<'a>>,
+}
+
+/// A finding plus its enrichment, as emitted in JSON.
+#[derive(Serialize)]
+struct JsonFinding<'a> {
+    #[serde(flatten)]
+    finding: &'a Finding,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    source_info: Option<&'a IpInfo>,
+}
+
+/// The full report as pretty-printed JSON.
+pub fn build_json(data: &ReportData) -> String {
+    let findings = data
+        .findings
+        .iter()
+        .map(|finding| JsonFinding {
+            finding,
+            source_info: finding.source_ip.and_then(|ip| data.info.get(&ip)),
+        })
+        .collect();
+    let doc = JsonReport {
+        source: data.source_label,
+        risk: risk_word(data.findings),
+        summary: data.summary,
+        top_sources: data.sources,
+        findings,
+    };
+    serde_json::to_string_pretty(&doc).expect("report serializes")
+}
+
+/// One finding as a single JSON line, for `--follow --json` streams.
+pub fn finding_json_line(
+    finding: &Finding,
+    info: Option<&IpInfo>,
+    sources: &[SourceActivity],
+) -> String {
+    #[derive(Serialize)]
+    struct Line<'a> {
+        #[serde(flatten)]
+        finding: &'a Finding,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        source_info: Option<&'a IpInfo>,
+        top_sources: &'a [SourceActivity],
+    }
+    serde_json::to_string(&Line {
+        finding,
+        source_info: info,
+        top_sources: sources,
+    })
+    .expect("finding serializes")
+}
+
+/// Machine-friendly risk word without emoji.
+fn risk_word(findings: &[Finding]) -> &'static str {
+    match findings.iter().map(|f| f.severity).max() {
+        Some(Severity::High) => "elevated",
+        Some(Severity::Medium) => "guarded",
+        _ => "normal",
     }
 }
 
@@ -186,14 +342,8 @@ pub fn sort_findings(findings: &mut [Finding]) {
 ///
 /// The report itself is the tool's primary output, so it goes to stdout by
 /// design (diagnostics go to the logger / stderr instead).
-pub fn print_report(
-    source_label: &str,
-    summary: &Summary,
-    findings: &[Finding],
-    summary_only: bool,
-    color: bool,
-) {
-    let report = build_report(source_label, summary, findings, summary_only, color);
+pub fn print_report(data: &ReportData, color: bool) {
+    let report = build_report(data, color);
     print!("{report}");
     // A trailing newline only when stdout is a terminal, for a tidy prompt.
     if std::io::stdout().is_terminal() {
@@ -205,6 +355,23 @@ pub fn print_report(
 mod tests {
     use super::*;
     use chrono::NaiveDate;
+
+    fn data<'a>(
+        source_label: &'a str,
+        summary: &'a Summary,
+        findings: &'a [Finding],
+        summary_only: bool,
+    ) -> ReportData<'a> {
+        static EMPTY: std::sync::OnceLock<HashMap<IpAddr, IpInfo>> = std::sync::OnceLock::new();
+        ReportData {
+            source_label,
+            summary,
+            findings,
+            sources: &[],
+            info: EMPTY.get_or_init(HashMap::new),
+            summary_only,
+        }
+    }
 
     fn finding(severity: Severity, title: &str) -> Finding {
         Finding {
@@ -240,10 +407,7 @@ mod tests {
     fn summary_only_omits_findings_section() {
         let summary = Summary::default();
         let report = build_report(
-            "test.log",
-            &summary,
-            &[finding(Severity::High, "x")],
-            true,
+            &data("test.log", &summary, &[finding(Severity::High, "x")], true),
             false,
         );
         assert!(!report.contains("Interesting activity"));
@@ -254,10 +418,7 @@ mod tests {
     fn color_is_omitted_when_disabled() {
         let summary = Summary::default();
         let report = build_report(
-            "test.log",
-            &summary,
-            &[finding(Severity::High, "x")],
-            false,
+            &data("test.log", &summary, &[finding(Severity::High, "x")], false),
             false,
         );
         assert!(!report.contains("\x1b["));
@@ -267,10 +428,7 @@ mod tests {
     fn color_is_present_when_enabled() {
         let summary = Summary::default();
         let report = build_report(
-            "test.log",
-            &summary,
-            &[finding(Severity::High, "x")],
-            false,
+            &data("test.log", &summary, &[finding(Severity::High, "x")], false),
             true,
         );
         assert!(report.contains(RED));
@@ -278,13 +436,31 @@ mod tests {
     }
 
     #[test]
+    fn json_report_has_expected_shape() {
+        let summary = Summary::default();
+        let json = build_json(&data(
+            "x.log",
+            &summary,
+            &[finding(Severity::High, "bf")],
+            false,
+        ));
+        let value: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(value["risk"], "elevated");
+        assert_eq!(value["findings"][0]["severity"], "high");
+        assert_eq!(value["findings"][0]["title"], "bf");
+        assert!(value["summary"]["total_events"].is_number());
+    }
+
+    #[test]
     fn full_report_includes_findings() {
         let summary = Summary::default();
         let report = build_report(
-            "test.log",
-            &summary,
-            &[finding(Severity::High, "brute force")],
-            false,
+            &data(
+                "test.log",
+                &summary,
+                &[finding(Severity::High, "brute force")],
+                false,
+            ),
             false,
         );
         assert!(report.contains("Interesting activity"));

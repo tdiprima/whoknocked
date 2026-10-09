@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.5.0
+
+- **systemd journal support.** `--journal` reads sshd/sshd-session/sudo
+  entries via `journalctl`; auto-detection falls back to it when the
+  distribution's log file is missing. `--file -` reads stdin.
+- **`--follow`** live mode: prints new findings as they happen, survives
+  logrotate, and emits JSON lines with `--json`.
+- **`--enrich`**: country, city, ASN/org, and hostname for source IPs via
+  ipinfo.io, shown in the Top sources table and on each finding.
+- **Top sources** table in every report (`--top N`, default 5).
+- **`--json`** output for the full report.
+
 ## v0.4.0
 
 - Renamed the project from LogHound to **whoknocked**. The binary and all

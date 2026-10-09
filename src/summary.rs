@@ -4,11 +4,12 @@
 //! are the numbers that matter" summary. Pure computation, no I/O.
 
 use crate::event::{AuthEvent, EventType};
+use serde::Serialize;
 use std::collections::HashSet;
 use std::net::IpAddr;
 
 /// High-level counts over a slice of events.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize)]
 pub struct Summary {
     pub total_events: usize,
     pub successful_logins: usize,

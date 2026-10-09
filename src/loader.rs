@@ -9,8 +9,7 @@ use crate::event::AuthEvent;
 use crate::parser;
 use anyhow::{Context, Result};
 use chrono::{Datelike, Duration, NaiveDateTime};
-use std::fs::File;
-use std::io::{BufRead, BufReader};
+use std::io::BufRead;
 use std::path::Path;
 
 /// Small clock skew tolerance when deciding a timestamp is "in the future".
@@ -29,13 +28,7 @@ pub struct LoadOutcome {
 /// `now` anchors the assumed year for syslog's yearless timestamps, and is
 /// taken as a parameter (not read from the clock here) so the logic stays
 /// pure and testable.
-pub fn load_events(path: &Path, now: NaiveDateTime) -> Result<LoadOutcome> {
-    validate_readable(path)?;
-
-    let file = File::open(path).with_context(|| format!("cannot open {}", path.display()))?;
-    let reader = BufReader::new(file);
-
-    let assumed_year = now.year();
+pub fn load_events<R: BufRead>(reader: R, label: &str, now: NaiveDateTime) -> Result<LoadOutcome> {
     let mut outcome = LoadOutcome {
         events: Vec::new(),
         non_event_lines: 0,
@@ -43,19 +36,11 @@ pub fn load_events(path: &Path, now: NaiveDateTime) -> Result<LoadOutcome> {
     };
 
     for (line_number, line_result) in reader.lines().enumerate() {
-        let line = line_result.with_context(|| {
-            format!(
-                "error reading {} at line {}",
-                path.display(),
-                line_number + 1
-            )
-        })?;
+        let line = line_result
+            .with_context(|| format!("error reading {label} at line {}", line_number + 1))?;
 
-        match parser::parse_line(&line, assumed_year) {
-            Ok(Some(mut event)) => {
-                event.timestamp = correct_year(event.timestamp, now);
-                outcome.events.push(event);
-            }
+        match parse_event(&line, now) {
+            Ok(Some(event)) => outcome.events.push(event),
             Ok(None) => outcome.non_event_lines += 1,
             Err(error) => {
                 outcome.parse_errors += 1;
@@ -73,8 +58,20 @@ pub fn load_events(path: &Path, now: NaiveDateTime) -> Result<LoadOutcome> {
     Ok(outcome)
 }
 
+/// Parse one line into an event, correcting a yearless timestamp against `now`.
+///
+/// This is the single-line building block shared by the batch loader and
+/// `--follow` mode.
+pub fn parse_event(line: &str, now: NaiveDateTime) -> Result<Option<AuthEvent>> {
+    let parsed = parser::parse_line(line, now.year())?;
+    Ok(parsed.map(|mut event| {
+        event.timestamp = correct_year(event.timestamp, now);
+        event
+    }))
+}
+
 /// Verify the path exists and is a regular file before opening it.
-fn validate_readable(path: &Path) -> Result<()> {
+pub fn validate_readable(path: &Path) -> Result<()> {
     let metadata = std::fs::metadata(path).with_context(|| {
         format!(
             "cannot access {} (does it exist, and do you have permission? \
@@ -204,6 +201,11 @@ mod tests {
             window_minutes: None,
             spray_threshold: None,
             color: crate::cli::ColorMode::Auto,
+            journal: false,
+            follow: false,
+            enrich: false,
+            json: false,
+            top: 5,
         }
     }
 

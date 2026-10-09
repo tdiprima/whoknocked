@@ -1,6 +1,6 @@
 [package]
 name = "whoknocked"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2021"
 rust-version = "1.85"
 description = "Who knocked on your SSH door? A tiny local analyzer for Linux auth logs that surfaces brute force, sprays, and suspicious logins."
@@ -17,12 +17,18 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow = "1.0"
-chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }
 clap = { version = "4.5", features = ["derive"] }
 env_logger = "0.11"
 log = "0.4"
 regex = "1.10"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+ureq = { version = "3", features = ["json"] }
 
 [profile.release]
 strip = true
 lto = true
+
+[dev-dependencies]
+serde_json = "1.0"
