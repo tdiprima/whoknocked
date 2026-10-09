@@ -2,7 +2,7 @@
 name = "whoknocked"
 version = "0.4.0"
 edition = "2021"
-rust-version = "1.74"
+rust-version = "1.85"
 description = "Who knocked on your SSH door? A tiny local analyzer for Linux auth logs that surfaces brute force, sprays, and suspicious logins."
 license = "MIT"
 readme = "README.md"

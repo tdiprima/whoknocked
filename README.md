@@ -119,7 +119,7 @@ override the choice with `--file` (see below).
 ## Requirements
 
 - Nothing, if you use a prebuilt binary. Building from source needs **Rust**
-  1.74 or newer (install via [rustup](https://rustup.rs/)).
+  1.85 or newer (install via [rustup](https://rustup.rs/)).
 - A Linux host running **Ubuntu/Debian** or **RHEL/Rocky/AlmaLinux/CentOS/Fedora**.
 - Permission to read the auth log. These files are usually restricted, so you
   will typically run whoknocked with `sudo`, or as a user in the `adm` group
